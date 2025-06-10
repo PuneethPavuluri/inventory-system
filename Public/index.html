@@ -1,0 +1,43 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Inventory System</title>
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+  <h1>Inventory Management</h1>
+
+  <section>
+    <h2>Add Product</h2>
+    <input id="name" placeholder="Name">
+    <input id="sku" placeholder="SKU">
+    <input id="category" placeholder="Category">
+    <input id="stock" placeholder="Initial Stock" type="number">
+    <button onclick="addProduct()">Add Product</button>
+  </section>
+
+  <section>
+    <h2>All Products</h2>
+    <ul id="productList"></ul>
+  </section>
+
+  <section>
+    <h2>Adjust Stock</h2>
+    <select id="productSelect"></select>
+    <select id="type">
+      <option value="IN">IN</option>
+      <option value="OUT">OUT</option>
+    </select>
+    <input id="quantity" type="number" placeholder="Quantity">
+    <button onclick="addTransaction()">Submit</button>
+  </section>
+
+  <section>
+    <h2>Transaction History</h2>
+    <ul id="historyList"></ul>
+  </section>
+
+  <script src="script.js"></script>
+</body>
+</html>
