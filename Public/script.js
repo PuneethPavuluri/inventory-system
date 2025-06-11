@@ -1,76 +1,104 @@
-async function addProduct() {
-  const name = document.getElementById('name').value.trim();
-  const sku = document.getElementById('sku').value.trim();
-  const category = document.getElementById('category').value.trim();
-  const stock = document.getElementById('stock').value.trim();
+  const productForm = document.getElementById('product-form');
+  const productTableBody = document.getElementById('product-table-body');
+  const transactionForm = document.getElementById('transaction-form');
+  const transactionProductSelect = document.getElementById('transaction-product');
+  const transactionType = document.getElementById('transaction-type');
+  const transactionQuantity = document.getElementById('transaction-quantity');
+  const historyProductSelect = document.getElementById('history-product');
+  const transactionHistoryList = document.getElementById('transaction-history');
 
-  if (!name || !sku || !category || !stock) {
-    alert("Please fill all product fields.");
-    return;
+  // Fetch and display all products
+  async function loadProducts() {
+    const res = await fetch('/api/products');
+    const products = await res.json();
+
+    // Clear tables and selects
+    productTableBody.innerHTML = '';
+    transactionProductSelect.innerHTML = '';
+    historyProductSelect.innerHTML = '';
+
+    products.forEach(product => {
+      // Add to product table
+      const row = document.createElement('tr');
+      row.innerHTML = `
+        <td>${product.name}</td>
+        <td>${product.sku}</td>
+        <td>${product.category}</td>
+        <td>${product.current_stock}</td>
+        <td>
+          <button onclick="loadTransactionHistory('${product.id}')">📄 History</button>
+        </td>
+      `;
+      productTableBody.appendChild(row);
+
+      // Add to dropdowns
+      const option1 = new Option(product.name, product.id);
+      const option2 = new Option(product.name, product.id);
+      transactionProductSelect.add(option1);
+      historyProductSelect.add(option2);
+    });
   }
 
-  const res = await fetch('/api/products', {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ name, sku, category, initial_stock: stock })
+  // Add a new product
+  productForm.addEventListener('submit', async (e) => {
+    e.preventDefault();
+    const name = document.getElementById('name').value;
+    const sku = document.getElementById('sku').value;
+    const category = document.getElementById('category').value;
+    const stock = parseInt(document.getElementById('stock').value);
+
+    await fetch('/api/products', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ name, sku, category, current_stock: stock })
+    });
+
+    productForm.reset();
+    loadProducts();
   });
 
-  if (!res.ok) {
-    const err = await res.json();
-    alert(`Error: ${err.error}`);
-    return;
-  }
+  // Handle transactions (IN/OUT)
+  transactionForm.addEventListener('submit', async (e) => {
+    e.preventDefault();
 
-  // Clear input fields
-  document.getElementById('name').value = '';
-  document.getElementById('sku').value = '';
-  document.getElementById('category').value = '';
-  document.getElementById('stock').value = '';
+    const product_id = transactionProductSelect.value;
+    const type = transactionType.value;
+    const quantity = parseInt(transactionQuantity.value);
 
-  await loadProducts();
-}
+    await fetch('/api/transactions', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ product_id, type, quantity })
+    });
 
-async function loadProducts() {
-  const res = await fetch('/api/products');
-  const products = await res.json();
-  const list = document.getElementById('productList');
-  const select = document.getElementById('productSelect');
-
-  list.innerHTML = '';
-  select.innerHTML = '';
-  products.forEach(p => {
-    list.innerHTML += `<li>${p.name} (${p.sku}) - ${p.current_stock}</li>`;
-    select.innerHTML += `<option value="${p.id}">${p.name}</option>`;
+    transactionForm.reset();
+    loadProducts();
   });
 
-  if (products.length > 0) {
-    document.getElementById('productSelect').value = products[0].id;
-    loadHistory(products[0].id);
+  // Load transaction history
+  async function loadTransactionHistory(productId) {
+    const res = await fetch(`/api/transactions/${productId}`);
+    const history = await res.json();
+
+    transactionHistoryList.innerHTML = '';
+    history.sort((a, b) => new Date(b.timestamp) - new Date(a.timestamp));
+
+    history.forEach(tx => {
+      const li = document.createElement('li');
+      li.textContent = `${tx.type} ${tx.quantity} on ${new Date(tx.timestamp).toLocaleString()}`;
+      transactionHistoryList.appendChild(li);
+    });
+
+    historyProductSelect.value = productId;
   }
-}
 
-async function addTransaction() {
-  const product_id = document.getElementById('productSelect').value;
-  const type = document.getElementById('type').value;
-  const quantity = document.getElementById('quantity').value.trim();
-
-  if (!quantity || quantity <= 0) {
-    alert("Enter a valid quantity.");
-    return;
-  }
-
-  const res = await fetch('/api/transactions',{
-    method: 'POST',
-    headers: {'content-Type':'application/json'},
-    body: JSON.stringify({product_id,type,quantity})
-    
+  // Load history when changing dropdown
+  historyProductSelect.addEventListener('change', (e) => {
+    const productId = e.target.value;
+    if (productId) {
+      loadTransactionHistory(productId);
+    }
   });
 
-  if(!res.ok){
-    const err = await res.json();
-    alert(Error:${err.errror});
-    return;
-  }
-
-  document.getElementById('quantity').value = ";
-    
+  // Initial load
+  loadProducts();
